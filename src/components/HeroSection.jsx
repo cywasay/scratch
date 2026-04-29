@@ -10,7 +10,11 @@ const roles = [
 ];
 
 // Individual letter component with hover/touch interactivity
-const GlitchLetter = ({ char, color = "white", glowColor = "rgba(0,255,65,0.15)" }) => {
+const GlitchLetter = ({
+  char,
+  color = "white",
+  glowColor = "rgba(0,255,65,0.15)",
+}) => {
   const [active, setActive] = useState(false);
   const [scramble, setScramble] = useState(char);
 
@@ -75,16 +79,22 @@ const HeroSection = () => {
       setDecodedChars(
         currentRole.split("").map((c) => ({
           target: c,
-          display: c === " " ? " " : scrambleChars[Math.floor(Math.random() * scrambleChars.length)],
+          display:
+            c === " "
+              ? " "
+              : scrambleChars[Math.floor(Math.random() * scrambleChars.length)],
           resolved: c === " ",
-        }))
+        })),
       );
 
       // Resolve one letter at a time from left to right
       let resolveIndex = 0;
       interval = setInterval(() => {
         // Skip spaces
-        while (resolveIndex < currentRole.length && currentRole[resolveIndex] === " ") {
+        while (
+          resolveIndex < currentRole.length &&
+          currentRole[resolveIndex] === " "
+        ) {
           resolveIndex++;
         }
         if (resolveIndex >= currentRole.length) {
@@ -96,13 +106,16 @@ const HeroSection = () => {
         // Scramble unresolved chars, lock in the current one
         setDecodedChars((prev) =>
           prev.map((item, i) => {
-            if (i < resolveIndex || item.resolved) return { ...item, resolved: true, display: item.target };
-            if (i === resolveIndex) return { ...item, resolved: true, display: item.target };
+            if (i < resolveIndex || item.resolved)
+              return { ...item, resolved: true, display: item.target };
+            if (i === resolveIndex)
+              return { ...item, resolved: true, display: item.target };
             return {
               ...item,
-              display: scrambleChars[Math.floor(Math.random() * scrambleChars.length)],
+              display:
+                scrambleChars[Math.floor(Math.random() * scrambleChars.length)],
             };
-          })
+          }),
         );
         resolveIndex++;
       }, 70);
@@ -118,8 +131,13 @@ const HeroSection = () => {
           prev.map((item) => ({
             ...item,
             resolved: false,
-            display: item.target === " " ? " " : scrambleChars[Math.floor(Math.random() * scrambleChars.length)],
-          }))
+            display:
+              item.target === " "
+                ? " "
+                : scrambleChars[
+                    Math.floor(Math.random() * scrambleChars.length)
+                  ],
+          })),
         );
         count++;
         if (count > 8) {
@@ -227,8 +245,12 @@ const HeroSection = () => {
                 key={i}
                 className="inline-block transition-colors duration-75"
                 style={{
-                  color: item.resolved ? "rgba(74, 222, 128, 0.85)" : "rgba(0, 255, 65, 0.3)",
-                  textShadow: item.resolved ? "0 0 8px rgba(0,255,65,0.4)" : "none",
+                  color: item.resolved
+                    ? "rgba(74, 222, 128, 0.85)"
+                    : "rgba(0, 255, 65, 0.3)",
+                  textShadow: item.resolved
+                    ? "0 0 8px rgba(0,255,65,0.4)"
+                    : "none",
                   width: item.target === " " ? "0.4em" : "auto",
                 }}
               >

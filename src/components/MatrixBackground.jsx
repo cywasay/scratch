@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from "react";
 
 const MatrixBackground = () => {
   const canvasRef = useRef(null);
@@ -9,11 +9,11 @@ const MatrixBackground = () => {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
 
     let animationFrame;
     let drops = [];
-    let charGrid = []; 
+    let charGrid = [];
 
     const fontSize = 34;
     const columnWidth = 24;
@@ -35,7 +35,7 @@ const MatrixBackground = () => {
         drops[i] = Math.random() * rows; // Float for smooth scrolling
         charGrid[i] = [];
         for (let j = 0; j < rows; j++) {
-          charGrid[i][j] = Math.random() > 0.5 ? '1' : '0';
+          charGrid[i][j] = Math.random() > 0.5 ? "1" : "0";
         }
       }
     };
@@ -50,9 +50,9 @@ const MatrixBackground = () => {
       mouseRef.current.active = false;
     };
 
-    window.addEventListener('resize', resize);
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseleave', handleMouseLeave);
+    window.addEventListener("resize", resize);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseleave", handleMouseLeave);
     resize();
 
     const draw = () => {
@@ -65,7 +65,7 @@ const MatrixBackground = () => {
       // FULL clear every frame — no ghosting, no smearing
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.font = `bold ${fontSize}px "Courier New", monospace`;
-      ctx.textBaseline = 'top';
+      ctx.textBaseline = "top";
 
       const cols = totalCols();
       const rows = totalRows();
@@ -92,9 +92,9 @@ const MatrixBackground = () => {
           if (!isActive || dist >= REVEAL_RADIUS) continue;
 
           // Proximity to cursor (0 = edge, 1 = dead center)
-          const proximity = 1 - (dist / REVEAL_RADIUS);
+          const proximity = 1 - dist / REVEAL_RADIUS;
           // Trail fade (0 = tail, 1 = head)
-          const trailFade = 1 - (t / TRAIL_LENGTH);
+          const trailFade = 1 - t / TRAIL_LENGTH;
 
           // Combined brightness
           const brightness = proximity * trailFade;
@@ -102,40 +102,31 @@ const MatrixBackground = () => {
 
           // Color based on position in trail
           if (t === 0) {
-            // HEAD — brightest, slightly white-green
-            const alpha = Math.min(1, brightness * 1.2);
-            ctx.fillStyle = `rgba(160, 255, 180, ${alpha})`;
-            ctx.shadowBlur = 6;
-            ctx.shadowColor = '#00ff41';
+            // HEAD — brightest, white-green
+            ctx.fillStyle = `rgba(200, 255, 220, ${Math.min(1, brightness * 1.2)})`;
           } else if (t <= 2) {
             // Near head — bright green
-            const alpha = Math.min(1, brightness * 0.9);
-            ctx.fillStyle = `rgba(0, 255, 65, ${alpha})`;
-            ctx.shadowBlur = 3;
-            ctx.shadowColor = '#00ff41';
+            ctx.fillStyle = `rgba(0, 255, 65, ${Math.min(1, brightness * 0.9)})`;
           } else {
             // Tail — dim green
-            const alpha = Math.min(1, brightness * 0.6);
-            ctx.fillStyle = `rgba(0, 140, 30, ${alpha})`;
-            ctx.shadowBlur = 0;
+            ctx.fillStyle = `rgba(0, 100, 20, ${Math.min(1, brightness * 0.6)})`;
           }
 
-          const safeIndex = (rowIndex % rows + rows) % rows;
+          const safeIndex = ((rowIndex % rows) + rows) % rows;
           const char = charGrid[i][safeIndex];
           ctx.fillText(char, charX, charY);
-          ctx.shadowBlur = 0;
         }
 
         // Smooth speed (pixels per frame)
-        let speed = 0.05; // base slow speed
-        
+        let speed = 0.04; // Slightly slower base
+
         // Distance to cursor for dynamic speed
         const dx = i * columnWidth + columnWidth / 2 - mx;
         const dy = headPos * rowHeight + fontSize / 2 - my;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         if (isActive && dist < REVEAL_RADIUS) {
-          const intensity = 1 - (dist / REVEAL_RADIUS);
+          const intensity = 1 - dist / REVEAL_RADIUS;
           speed += intensity * 0.15; // Speed up near cursor
         }
 
@@ -143,7 +134,8 @@ const MatrixBackground = () => {
 
         // Randomly flip one character in the column for a classic matrix shimmer
         if (Math.random() > 0.8) {
-           charGrid[i][Math.floor(Math.random() * rows)] = Math.random() > 0.5 ? '1' : '0';
+          charGrid[i][Math.floor(Math.random() * rows)] =
+            Math.random() > 0.5 ? "1" : "0";
         }
 
         // Reset when it's gone far enough off screen
@@ -156,19 +148,16 @@ const MatrixBackground = () => {
     draw();
 
     return () => {
-      window.removeEventListener('resize', resize);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseleave', handleMouseLeave);
+      window.removeEventListener("resize", resize);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseleave", handleMouseLeave);
       cancelAnimationFrame(animationFrame);
     };
   }, []);
 
   return (
     <div className="fixed inset-0 w-full h-full bg-black z-[-1] overflow-hidden">
-      <canvas
-        ref={canvasRef}
-        className="w-full h-full block"
-      />
+      <canvas ref={canvasRef} className="w-full h-full block" />
       {/* CRT scanline overlay */}
       <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.2)_50%),linear-gradient(90deg,rgba(255,0,0,0.04),rgba(0,255,0,0.015),rgba(0,0,255,0.04))] bg-[length:100%_3px,3px_100%]" />
     </div>
