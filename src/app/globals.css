@@ -1,26 +1,147 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Glitch keyframes */
+@keyframes glitch-1 {
+  0%, 100% { clip-path: inset(40% 0 61% 0); transform: translate(0); }
+  20% { clip-path: inset(92% 0 1% 0); transform: translate(-3px, 1px); }
+  40% { clip-path: inset(43% 0 1% 0); transform: translate(3px, -1px); }
+  60% { clip-path: inset(25% 0 58% 0); transform: translate(-2px, 2px); }
+  80% { clip-path: inset(54% 0 7% 0); transform: translate(2px, -2px); }
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@keyframes glitch-2 {
+  0%, 100% { clip-path: inset(76% 0 1% 0); transform: translate(0); }
+  20% { clip-path: inset(13% 0 68% 0); transform: translate(4px, 0); }
+  40% { clip-path: inset(1% 0 85% 0); transform: translate(-4px, 1px); }
+  60% { clip-path: inset(55% 0 30% 0); transform: translate(3px, -1px); }
+  80% { clip-path: inset(3% 0 60% 0); transform: translate(-3px, 0); }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@keyframes glitch-skew {
+  0%, 100% { transform: skewX(0deg); }
+  20% { transform: skewX(-1deg); }
+  40% { transform: skewX(0.5deg); }
+  60% { transform: skewX(-0.3deg); }
+  80% { transform: skewX(0.8deg); }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes flicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
+  20%, 24%, 55% { opacity: 0.6; }
+}
+
+.glitch-name {
+  position: relative;
+  animation: glitch-skew 4s steps(10) infinite;
+}
+
+.glitch-name::before,
+.glitch-name::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.glitch-name::before {
+  color: #00ff41;
+  animation: glitch-1 3s steps(20) infinite;
+  opacity: 0.4;
+  text-shadow: 2px 0 #00ff41;
+}
+
+.glitch-name::after {
+  color: #ff0040;
+  animation: glitch-2 2.5s steps(20) infinite reverse;
+  opacity: 0.2;
+  text-shadow: -2px 0 #ff0040;
+}
+
+.flicker-text {
+  animation: flicker 6s linear infinite;
+}
+
+/* Click/tap burst — intense disruption */
+@keyframes burst-glitch {
+  0% { transform: translate(0) skewX(0); filter: hue-rotate(0deg); }
+  10% { transform: translate(-5px, 3px) skewX(-8deg); filter: hue-rotate(90deg) brightness(2); }
+  20% { transform: translate(5px, -2px) skewX(5deg); filter: hue-rotate(-90deg); }
+  30% { transform: translate(-3px, -3px) skewX(-3deg); filter: hue-rotate(180deg) brightness(1.5); }
+  40% { transform: translate(3px, 2px) skewX(6deg); filter: hue-rotate(0deg); }
+  50% { transform: translate(-2px, 1px) skewX(-2deg); filter: brightness(3); }
+  60% { transform: translate(4px, -1px) skewX(4deg); filter: hue-rotate(90deg); }
+  80% { transform: translate(-1px, 2px) skewX(-1deg); filter: brightness(1.2); }
+  100% { transform: translate(0) skewX(0); filter: hue-rotate(0deg) brightness(1); }
+}
+
+.glitch-burst {
+  animation: burst-glitch 0.4s steps(8) forwards !important;
+}
+
+/* Hover intensifies the glitch effect */
+.glitch-name:hover::before {
+  animation-duration: 0.3s;
+  opacity: 0.7;
+}
+
+.glitch-name:hover::after {
+  animation-duration: 0.25s;
+  opacity: 0.5;
+}
+
+.glitch-name:hover {
+  animation-duration: 0.5s;
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 4s linear infinite;
+}
+
+/* Hologram scan beam — sweeps vertically */
+@keyframes hologram-scan {
+  0% { top: -120px; }
+  100% { top: calc(100% + 120px); }
+}
+
+/* Hologram flicker — fast, aggressive, varied */
+@keyframes hologram-flicker {
+  0%   { opacity: 0.30; }
+  8%   { opacity: 0.22; }
+  15%  { opacity: 0.35; }
+  20%  { opacity: 0.18; }
+  30%  { opacity: 0.32; }
+  40%  { opacity: 0.38; }
+  50%  { opacity: 0.20; }
+  55%  { opacity: 0.40; }
+  65%  { opacity: 0.28; }
+  75%  { opacity: 0.15; }
+  80%  { opacity: 0.35; }
+  90%  { opacity: 0.22; }
+  100% { opacity: 0.30; }
+}
+
+/* Horizontal glitch tear — jumps to random Y positions */
+@keyframes hologram-tear {
+  0%    { top: 15%; opacity: 1; }
+  5%    { top: 15%; opacity: 0; }
+  25%   { top: 60%; opacity: 0; }
+  25.5% { top: 60%; opacity: 1; }
+  30%   { top: 60%; opacity: 0; }
+  50%   { top: 33%; opacity: 0; }
+  50.5% { top: 33%; opacity: 1; }
+  55%   { top: 33%; opacity: 0; }
+  75%   { top: 80%; opacity: 0; }
+  75.5% { top: 80%; opacity: 1; }
+  80%   { top: 80%; opacity: 0; }
+  100%  { top: 15%; opacity: 0; }
 }
