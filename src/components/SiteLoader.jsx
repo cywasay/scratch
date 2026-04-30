@@ -1,62 +1,65 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const SiteLoader = ({ onComplete }) => {
+  const [loading, setLoading] = useState(true);
+  const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState("INITIALIZING...");
+  const [isGlitchingExit, setIsGlitchingExit] = useState(false);
   const canvasRef = useRef(null);
-  const [exiting, setExiting] = useState(false);
-  const [phase, setPhase] = useState("converge");
-  const [statusText, setStatusText] = useState("");
-  const [displayStatus, setDisplayStatus] = useState("");
-  const startRef = useRef(null);
-  const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
 
-  // Cipher-decode effect for the status text
   useEffect(() => {
-    if (!statusText) {
-      setDisplayStatus("");
-      return;
+    const timer = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(timer);
+          return 100;
+        }
+        const jump = Math.random() > 0.8 ? Math.random() * 12 : Math.random() * 1.5;
+        return Math.min(prev + jump, 100);
+      });
+    }, 60);
+
+    const statusInterval = setInterval(() => {
+      const statuses = [
+        "BOOTING_KERNEL_v4.2.0...",
+        "DECRYPTING_NEURAL_HASH...",
+        "BYPASSING_SECURITY_LAYER...",
+        "SYNCING_BIO_METRICS...",
+        "STABILIZING_GRID...",
+        "UPLINK_ESTABLISHED",
+        "ACCESS_GRANTED"
+      ];
+      setStatus(statuses[Math.floor((progress / 100) * (statuses.length - 1))]);
+    }, 500);
+
+    return () => {
+      clearInterval(timer);
+      clearInterval(statusInterval);
+    };
+  }, [progress]);
+
+  useEffect(() => {
+    if (progress === 100) {
+      // Small pause at 100 before the violent exit
+      setTimeout(() => {
+        setIsGlitchingExit(true);
+        setTimeout(() => {
+          setLoading(false);
+          onComplete();
+        }, 800); // Duration of the violent glitch exit
+      }, 500);
     }
-    const chars = "01!@#$%&ABCDEF";
-    let resolveIdx = 0;
-    const interval = setInterval(() => {
-      if (resolveIdx > statusText.length) {
-        clearInterval(interval);
-        return;
-      }
-      setDisplayStatus(
-        statusText
-          .split("")
-          .map((c, i) => {
-            if (c === " ") return " ";
-            if (i < resolveIdx) return c;
-            return chars[Math.floor(Math.random() * chars.length)];
-          })
-          .join("")
-      );
-      resolveIdx++;
-    }, 30);
-    return () => clearInterval(interval);
-  }, [statusText]);
+  }, [progress, onComplete]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d", { alpha: false });
-    let w, h, frame;
-
-    const PARTICLE_COUNT = 1500;
-    const particles = [];
-
-    // Cyberpunk color palette
-    const colors = [
-      { r: 0, g: 255, b: 65 }, // Matrix Green
-      { r: 0, g: 255, b: 200 }, // Cyan
-      { r: 255, g: 0, b: 85 }, // Magenta
-      { r: 255, g: 255, b: 255 }, // White
-      { r: 200, g: 255, b: 0 }, // Yellow
-    ];
+    const ctx = canvas.getContext("2d");
+    let w, h;
+    let frames = 0;
 
     const resize = () => {
       w = canvas.width = window.innerWidth;
@@ -65,250 +68,175 @@ const SiteLoader = ({ onComplete }) => {
     resize();
     window.addEventListener("resize", resize);
 
-    // Define crisp concentric rings for the target shape
-    const rings = [
-      { count: 100, radius: 25 },
-      { count: 250, radius: 55 },
-      { count: 400, radius: 85 },
-      { count: 750, radius: 120 },
-    ];
+    const columns = Math.floor(w / 20);
+    const drops = new Array(columns).fill(0);
+    const chars = "0123456789ABCDEF!@#$%^&*()_+";
 
-    let pIdx = 0;
-    for (let r = 0; r < rings.length; r++) {
-      const ring = rings[r];
-      for (let i = 0; i < ring.count; i++) {
-        const angle = (i / ring.count) * Math.PI * 2 + Math.random() * 0.1;
-        // Start position scattered far outside
-        const startDist = Math.max(w, h) * (0.6 + Math.random() * 0.5);
-        const startAngle = Math.random() * Math.PI * 2;
-
-        particles.push({
-          x: w / 2 + Math.cos(startAngle) * startDist,
-          y: h / 2 + Math.sin(startAngle) * startDist,
-          tx: w / 2 + Math.cos(angle) * ring.radius,
-          ty: h / 2 + Math.sin(angle) * ring.radius,
-          radius: ring.radius, // Store radius for orbiting
-          angle: angle, // Store base angle for orbiting
-          vx: 0,
-          vy: 0,
-          size: Math.random() * 2 + 1.5,
-          color: colors[Math.floor(Math.random() * colors.length)],
-          char: Math.random() > 0.5 ? "1" : "0",
-          isText: Math.random() > 0.75,
-          speed: Math.random() * 0.04 + 0.02,
-          glitchOffset: 0,
-          shatterVx: 0,
-          shatterVy: 0,
-          shattered: false,
-        });
-        pIdx++;
-      }
-    }
-
-    startRef.current = performance.now();
-    let currentPhase = "converge";
-
-    const draw = (now) => {
-      frame = requestAnimationFrame(draw);
-      const elapsed = (now - startRef.current) / 1000;
-
-      // === PHASE MANAGEMENT ===
-      if (currentPhase === "converge") {
-        if (elapsed > 0.1 && !statusText) setStatusText("COMPILING KERNEL...");
-        if (elapsed > 1.2 && statusText === "COMPILING KERNEL...") setStatusText("INJECTING NEURAL TOKENS...");
-        if (elapsed > 2.8) {
-          currentPhase = "pulse";
-          setPhase("pulse");
-          setStatusText("SYSTEM LINK ESTABLISHED");
-        }
-      }
-      if (currentPhase === "pulse" && elapsed > 4.8) {
-        currentPhase = "shatter";
-        setPhase("shatter");
-        setStatusText("ACCESS GRANTED");
-        // Blast outward
-        particles.forEach((p) => {
-          const angle = Math.atan2(p.y - h / 2, p.x - w / 2) + (Math.random() - 0.5) * 0.5;
-          const force = Math.random() * 35 + 15;
-          p.shatterVx = Math.cos(angle) * force;
-          p.shatterVy = Math.sin(angle) * force;
-          p.shattered = true;
-        });
-      }
-      if (currentPhase === "shatter" && elapsed > 6.0) {
-        currentPhase = "exit";
-        setExiting(true);
-        setTimeout(() => onCompleteRef.current?.(), 800);
-      }
-
-      // === BACKGROUND & CLEAR ===
-      ctx.fillStyle = currentPhase === "shatter" && elapsed < 4.95
-        ? "rgba(255, 255, 255, 0.9)" // Bright flash on shatter
-        : "rgba(5, 5, 5, 0.35)"; // Motion blur trail
+    const draw = () => {
+      frames++;
+      ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
       ctx.fillRect(0, 0, w, h);
-
-      // Global Glitch Intensity (screen shake)
-      let globalGlitch = 0;
-      if (currentPhase === "converge" && elapsed < 2.5) {
-        globalGlitch = Math.random() > 0.85 ? (Math.random() - 0.5) * 30 : 0;
-      } else if (currentPhase === "pulse") {
-        globalGlitch = Math.random() > 0.95 ? (Math.random() - 0.5) * 60 : 0;
+      ctx.font = "12px monospace";
+      
+      for (let i = 0; i < drops.length; i++) {
+        if (Math.random() > 0.98) continue;
+        const text = chars[Math.floor(Math.random() * chars.length)];
+        const x = i * 20;
+        const y = drops[i] * 20;
+        ctx.fillStyle = Math.random() > 0.9 ? "#fff" : "#00ff41";
+        ctx.fillText(text, x, y);
+        if (y > h && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
       }
 
+      const centerX = w / 2;
+      const centerY = h / 2;
+      const radius = 150 + Math.sin(frames * 0.1) * 10;
+      ctx.strokeStyle = "rgba(0, 255, 65, 0.2)";
       ctx.save();
-      if (Math.abs(globalGlitch) > 15) {
-        ctx.translate(globalGlitch, Math.random() > 0.5 ? (Math.random() - 0.5) * 10 : 0);
+      ctx.translate(centerX, centerY);
+      ctx.rotate(frames * 0.02);
+      for (let i = 0; i < 3; i++) {
+        ctx.rotate((Math.PI * 2) / 3);
+        ctx.beginPath();
+        ctx.moveTo(0, -radius);
+        ctx.lineTo(radius * 0.86, radius * 0.5);
+        ctx.lineTo(-radius * 0.86, radius * 0.5);
+        ctx.closePath();
+        ctx.stroke();
       }
-
-      // Add a large central radial glow during pulse
-      if (currentPhase === "pulse") {
-        const glowPulse = Math.abs(Math.sin(elapsed * 5));
-        const gradient = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, 200);
-        gradient.addColorStop(0, `rgba(0, 255, 200, ${glowPulse * 0.15})`);
-        gradient.addColorStop(0.5, `rgba(255, 0, 85, ${glowPulse * 0.08})`);
-        gradient.addColorStop(1, "transparent");
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, w, h);
-      }
-
-      // === RENDER PARTICLES ===
-      ctx.globalCompositeOperation = "screen";
-      ctx.font = 'bold 11px "Courier New", monospace';
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-
-        let alpha = 1;
-        let blur = 0;
-
-        if (currentPhase === "converge") {
-          // Smooth ease-out convergence
-          const dx = p.tx - p.x;
-          const dy = p.ty - p.y;
-          p.x += dx * p.speed;
-          p.y += dy * p.speed;
-
-          // Occasional individual glitch offset
-          if (Math.random() > 0.98) {
-            p.glitchOffset = (Math.random() - 0.5) * 80;
-          } else {
-            p.glitchOffset *= 0.6; // snap back quickly
-          }
-        } else if (currentPhase === "pulse") {
-          // Locked into rings, orbiting smoothly
-          p.angle += 0.015; // Orbit speed
-          p.x = w / 2 + Math.cos(p.angle) * p.radius;
-          p.y = h / 2 + Math.sin(p.angle) * p.radius;
-
-          // Occasionally a particle jumps to the center and back
-          if (Math.random() > 0.995) {
-            p.x = w / 2 + (Math.random() - 0.5) * 50;
-            p.y = h / 2 + (Math.random() - 0.5) * 50;
-          }
-          p.glitchOffset = 0;
-
-          // Oscillating brightness/glow
-          const glowIntensity = Math.abs(Math.sin(elapsed * 5));
-          alpha = 0.4 + glowIntensity * 0.6;
-          blur = Math.random() > 0.8 ? glowIntensity * 12 : 0; // Only blur 20% to save performance
-        } else if (currentPhase === "shatter" && p.shattered) {
-          p.x += p.shatterVx;
-          p.y += p.shatterVy;
-          p.shatterVx *= 0.97;
-          p.shatterVy *= 0.97;
-          p.size *= 0.96;
-          alpha = Math.max(0, p.size / 3);
-        }
-
-        if (p.size < 0.5 || alpha < 0.05) continue;
-
-        const drawX = p.x + p.glitchOffset;
-        const drawY = p.y;
-
-        ctx.fillStyle = `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, ${alpha})`;
-        ctx.shadowBlur = blur;
-        if (blur > 0) ctx.shadowColor = ctx.fillStyle;
-
-        if (p.isText) {
-          if (Math.random() > 0.96) p.char = Math.random() > 0.5 ? "1" : "0";
-          ctx.fillText(p.char, drawX, drawY);
-        } else {
-          ctx.fillRect(drawX - p.size / 2, drawY - p.size / 2, p.size, p.size);
-        }
-      }
-
-      ctx.globalCompositeOperation = "source-over";
-      ctx.shadowBlur = 0;
       ctx.restore();
 
-      // === DRAW CENTER TEXT ===
-      ctx.font = 'bold 18px "Courier New", monospace';
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
+      const scanY = (frames * 5) % h;
+      ctx.fillStyle = "rgba(0, 255, 65, 0.05)";
+      ctx.fillRect(0, scanY, w, 2);
 
-      const txtX = w / 2;
-      const txtY = h / 2 + 180;
-
-      // Heavy Chromatic Aberration
-      const textGlitch = Math.random() > 0.9 ? (Math.random() - 0.5) * 15 : 0;
-
-      // Red/Magenta layer
-      ctx.fillStyle = "rgba(255, 0, 85, 0.8)";
-      ctx.fillText(displayStatus, txtX - 3 + textGlitch, txtY);
-
-      // Cyan layer
-      ctx.fillStyle = "rgba(0, 255, 200, 0.8)";
-      ctx.fillText(displayStatus, txtX + 3 - textGlitch, txtY);
-
-      // Main white/green layer
-      ctx.fillStyle = currentPhase === "shatter" ? "#00ff41" : "rgba(255, 255, 255, 0.95)";
-      ctx.fillText(displayStatus, txtX + (Math.random() > 0.95 ? textGlitch * 2 : 0), txtY);
-
-      // === RANDOM RGB GLITCH BARS ===
-      if (Math.random() > 0.92 && currentPhase !== "shatter") {
-        const gY = Math.random() * h;
-        const gH = Math.random() * 40 + 10;
-        const gW = Math.random() * w;
-        const gColor = colors[Math.floor(Math.random() * colors.length)];
-        ctx.fillStyle = `rgba(${gColor.r}, ${gColor.g}, ${gColor.b}, 0.12)`;
-        ctx.fillRect(Math.random() * w, gY, gW, gH);
-      }
+      requestAnimationFrame(draw);
     };
 
-    frame = requestAnimationFrame(draw);
+    const animationFrame = requestAnimationFrame(draw);
     return () => {
-      cancelAnimationFrame(frame);
+      cancelAnimationFrame(animationFrame);
       window.removeEventListener("resize", resize);
     };
   }, []);
 
   return (
-    <div
-      className={`fixed inset-0 z-[9999] bg-[#050505] transition-opacity duration-700 pointer-events-none ${
-        exiting ? "opacity-0" : "opacity-100"
-      }`}
-    >
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+    <AnimatePresence>
+      {loading && (
+        <motion.div
+          initial={{ opacity: 1 }}
+          animate={isGlitchingExit ? {
+            x: [0, -20, 20, -10, 10, 0],
+            y: [0, 10, -10, 5, -5, 0],
+            skewX: [0, 20, -20, 10, -10, 0],
+            filter: ["brightness(1) contrast(1)", "brightness(5) contrast(2)", "brightness(1) contrast(5)", "brightness(10) contrast(1)"],
+            scale: [1, 1.1, 0.9, 1.2, 0],
+          } : {}}
+          exit={{ opacity: 0 }}
+          transition={isGlitchingExit ? { duration: 0.8, ease: "easeInOut", times: [0, 0.1, 0.2, 0.3, 0.4, 1] } : {}}
+          className="fixed inset-0 z-[9999] bg-black overflow-hidden font-mono flex flex-col items-center justify-center"
+        >
+          {/* Intense Glitch Tearing Overlays (Only active on exit) */}
+          {isGlitchingExit && (
+            <div className="absolute inset-0 z-50 pointer-events-none">
+              <motion.div 
+                animate={{ top: ["20%", "80%", "40%"], opacity: [0, 1, 0] }}
+                className="absolute left-0 w-full h-1 bg-white shadow-[0_0_20px_white]" 
+              />
+              <motion.div 
+                animate={{ top: ["60%", "10%", "90%"], opacity: [0, 1, 0] }}
+                className="absolute left-0 w-full h-[2px] bg-cyan-400 shadow-[0_0_15px_cyan]" 
+              />
+              <div className="absolute inset-0 bg-red-500/10 mix-blend-multiply animate-pulse" />
+            </div>
+          )}
 
-      {/* Permanent CRT Overlay */}
-      <div className="absolute inset-0 opacity-[0.12] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.4)_50%)] bg-[length:100%_4px] mix-blend-overlay z-10" />
+          <canvas ref={canvasRef} className="absolute inset-0 opacity-20" />
 
-      {/* Vignette */}
-      <div
-        className="absolute inset-0 pointer-events-none z-10"
-        style={{ background: "radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.8) 100%)" }}
-      />
+          {/* CRT Overlay */}
+          <div className="absolute inset-0 pointer-events-none z-50 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
 
-      {/* Minimal HUD Corners */}
-      <div className="absolute top-6 left-6 font-mono text-[10px] text-green-500/40 uppercase z-20 tracking-widest">
-        SYS.INIT // <span className="text-pink-500/60">ROOT_ACCESS</span>
-      </div>
-      <div className="absolute bottom-6 right-6 font-mono text-[10px] text-cyan-500/40 uppercase z-20 tracking-widest text-right">
-        MEMORY_DUMP: 0x<span className="animate-pulse text-white/50">F4B9</span>
-      </div>
-    </div>
+          <div className="relative z-10 flex flex-col items-center">
+            <div className="flex flex-col items-center mb-12">
+              <motion.div 
+                animate={{ 
+                  opacity: isGlitchingExit ? [1, 0, 1, 0, 1] : [1, 0.5, 1],
+                  scale: isGlitchingExit ? [1, 1.5, 0.8, 1.2, 1] : [1, 1.02, 1] 
+                }}
+                transition={{ duration: isGlitchingExit ? 0.2 : 0.05, repeat: isGlitchingExit ? 4 : Infinity }}
+                className="text-8xl font-black text-white tracking-tighter"
+                style={{ textShadow: "0 0 20px rgba(0,255,65,0.5)" }}
+              >
+                {Math.floor(progress)}
+                <span className="text-4xl opacity-50">%</span>
+              </motion.div>
+              <div className="h-1 w-48 bg-green-950 mt-4 overflow-hidden relative border border-green-500/20">
+                <motion.div 
+                  className="absolute inset-0 bg-green-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="w-[400px] bg-green-950/10 border border-green-500/20 p-6 backdrop-blur-md relative overflow-hidden group">
+              <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-green-500" />
+              <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-green-500" />
+              <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-green-500" />
+              <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-green-500" />
+
+              <div className="space-y-3">
+                <div className="flex justify-between text-[10px] text-green-500/40 uppercase tracking-widest mb-4">
+                  <span>System_Manifest</span>
+                  <span>v.882-AG</span>
+                </div>
+                
+                <div className="flex gap-4 items-center">
+                  <div className="w-2 h-2 bg-green-500 animate-pulse shadow-[0_0_8px_#00ff41]" />
+                  <span className="text-[12px] text-white font-bold tracking-widest uppercase">
+                    {status}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-y-2 pt-4 border-t border-green-500/10 text-[9px] text-green-500/60 uppercase">
+                  <span>Memory_Buffer</span>
+                  <span className="text-right text-white">0xFA22_Secure</span>
+                  <span>CPU_Cycles</span>
+                  <span className="text-right text-white">{Math.floor(progress * 123.4)}MHz</span>
+                  <span>Network_Latency</span>
+                  <span className="text-right text-green-400">0.02ms</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer Technical Metadata */}
+          <div className="fixed bottom-10 left-10 right-10 flex justify-between items-end z-10 pointer-events-none">
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-1">
+                {[...Array(20)].map((_, i) => (
+                  <motion.div 
+                    key={i}
+                    animate={{ opacity: [0.1, 1, 0.1] }}
+                    transition={{ duration: Math.random() + 0.5, repeat: Infinity, delay: i * 0.05 }}
+                    className={`w-1 h-4 ${i < (progress / 5) ? "bg-green-500" : "bg-green-950"}`}
+                  />
+                ))}
+              </div>
+              <span className="text-[10px] text-green-500/30 uppercase tracking-[0.5em]">Neural_Link_Authorization_Pending</span>
+            </div>
+            
+            <div className="text-right flex flex-col gap-1">
+              <span className="text-[10px] text-green-500/40 uppercase tracking-widest font-bold">Enc_Type: AES-256-GCM</span>
+              <span className="text-[9px] text-white/10 uppercase tracking-widest">© 2026 ANTIGRAVITY_SYSTEMS</span>
+            </div>
+          </div>
+
+          {/* Global Vignette */}
+          <div className="absolute inset-0 pointer-events-none z-20 shadow-[inset_0_0_200px_rgba(0,0,0,1)]" />
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 
