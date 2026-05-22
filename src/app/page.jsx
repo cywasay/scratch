@@ -1,23 +1,81 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import MatrixBackground from "@/components/MatrixBackground";
 import SiteLoader from "@/components/SiteLoader";
 import HeroSection from "@/components/HeroSection";
 import Navigation from "@/components/Navigation";
 import AboutSection from "@/components/AboutSection";
-import NeuralArchive from "@/components/NeuralArchive";
-import CrackedGlass from "@/components/CrackedGlass";
+import IdentityOverlay from "@/components/IdentityHandoff";
+// import NeuralArchive from "@/components/NeuralArchive";
+// import CrackedGlass from "@/components/CrackedGlass";
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
+  // identityPhase: "loader" | "morph" | "hero"
+  const [identityPhase, setIdentityPhase] = useState("loader");
   const [navOpen, setNavOpen] = useState(false);
+  const [burst, setBurst] = useState(false);
+  const [boot, setBoot] = useState({
+    progress: 0,
+    identityText: "",
+    showIdentity: false,
+    identityResolved: false,
+  });
+
+  const handleExitStart = useCallback(() => {
+    setIdentityPhase("morph");
+  }, []);
+
+  const handleLoaderComplete = useCallback(() => {
+    setLoading(false);
+  }, []);
+
+  const handleMorphComplete = useCallback(() => {
+    setIdentityPhase((prev) => (prev === "morph" ? "hero" : prev));
+  }, []);
+
+  // Safety: if onAnimationComplete doesn't fire, force settle.
+  useEffect(() => {
+    if (identityPhase !== "morph") return;
+    const t = setTimeout(() => {
+      setIdentityPhase((prev) => (prev === "morph" ? "hero" : prev));
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [identityPhase]);
+
+  const handleBurst = useCallback(() => {
+    if (identityPhase !== "hero") return;
+    setBurst(true);
+    setTimeout(() => setBurst(false), 400);
+  }, [identityPhase]);
+
+  const heroRevealed = identityPhase !== "loader";
+  const contentRevealed = identityPhase === "hero";
 
   return (
     <>
-      {loading && <SiteLoader onComplete={() => setLoading(false)} />}
+      {loading && (
+        <SiteLoader
+          onBootUpdate={setBoot}
+          onExitStart={handleExitStart}
+          onComplete={handleLoaderComplete}
+        />
+      )}
 
-      {/* 3D Perspective Container */}
+      {/* Identity overlay — single element, lives outside main so its
+          fixed positioning is viewport-relative through the whole flow */}
+      {(boot.showIdentity || heroRevealed) && identityPhase !== "hero" ? (
+        <IdentityOverlay
+          phase={identityPhase}
+          identityText={boot.identityText}
+          resolved={boot.identityResolved}
+          burst={burst}
+          onBurst={handleBurst}
+          onMorphComplete={handleMorphComplete}
+        />
+      ) : null}
+
       <div
         style={{
           perspective: "900px",
@@ -41,26 +99,33 @@ export default function Home() {
             willChange: "transform, filter",
           }}
         >
-          <MatrixBackground />
+          <div
+            className="transition-opacity duration-[1200ms] ease-out"
+            style={{ opacity: heroRevealed ? 1 : 0 }}
+          >
+            <MatrixBackground />
+          </div>
 
           <div style={{ contentVisibility: "auto" }}>
-            <HeroSection />
+            <HeroSection
+              revealed={heroRevealed}
+              contentRevealed={contentRevealed}
+            />
           </div>
           <div style={{ contentVisibility: "auto" }}>
             <AboutSection />
           </div>
-          <div style={{ contentVisibility: "auto" }}>
+          {/* <div style={{ contentVisibility: "auto" }}>
             <NeuralArchive />
           </div>
           <div style={{ contentVisibility: "auto" }}>
             <CrackedGlass />
-          </div>
+          </div> */}
 
           <div className="fixed bottom-10 left-10 z-10 font-mono text-[10px] text-green-900 uppercase pointer-events-none">
             Terminal ID: 882-AG-BETA
           </div>
 
-          {/* ===== HOLOGRAM COMPOSITE OVERLAY ===== */}
           <div
             className="fixed inset-0 pointer-events-none z-30"
             style={{
@@ -68,7 +133,6 @@ export default function Home() {
               transition: "opacity 0.8s ease",
             }}
           >
-            {/* Layer 1: Holographic Glow & Scanlines (Combined) */}
             <div
               className="absolute inset-0"
               style={{
@@ -79,7 +143,6 @@ export default function Home() {
               }}
             />
 
-            {/* Layer 2: Bright scan beam sweeping down */}
             <div className="absolute inset-0 overflow-hidden">
               <div
                 className="absolute left-0 w-full"
@@ -93,7 +156,6 @@ export default function Home() {
               />
             </div>
 
-            {/* Layer 3: Edge & Bottom Projection Glows (Combined) */}
             <div
               className="absolute inset-0"
               style={{
@@ -107,7 +169,6 @@ export default function Home() {
               }}
             />
 
-            {/* Layer 4: Minimal Flicker */}
             <div
               className="absolute inset-0 bg-black/10"
               style={{
